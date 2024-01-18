@@ -1,3 +1,4 @@
 requests==2.31
 chess==1.10
 adafruit-circuitpython-ads1x15
+RPi.GPIO

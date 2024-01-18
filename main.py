@@ -6,13 +6,16 @@ from adafruit_ads1x15.analog_in import AnalogIn
  
 # Initialize the I2C interface
 i2c = busio.I2C(board.SCL, board.SDA)
+print("I2C addresses:", [hex(device_address) for device_address in i2c.scan()])
  
 # Create an ADS1115 object
-ads = ADS.ADS1115(i2c)
+ads = ADS.ADS1115(i2c, address=0x48)
+print("ADS1115 Configuration:", ads)
  
 # Define the analog input channel
 channel = AnalogIn(ads, ADS.P0)
- 
+print("Analog Value:", channel.value, "Voltage:", channel.voltage) 
+
 # Loop to read the analog input continuously
 while True:
     print("Analog Value: ", channel.value, "Voltage: ", channel.voltage)
