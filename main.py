@@ -58,11 +58,10 @@ def read_resistance(know_value):
 try:
     while True:
         for mux_channel in range(3):
-            set_channel(mux_channel	
+            set_channel(mux_channel)
             #enable_mux()
-            for x in known_resistor_values:
-                ohms = read_resistance(x)
-                print("Channel {mux_channel}: resistance {ohms}")
+            ohms = read_resistance(known_resistor_values[mux_channel])
+            print("Channel {}: resistance {}".format(mux_channel, ohms))
 
             # Read analog value from the selected channel
             # Add your ADC reading logic here
