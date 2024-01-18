@@ -10,12 +10,13 @@ i2c = busio.I2C(board.SCL, board.SDA)
 print("I2C addresses:", [hex(device_address) for device_address in i2c.scan()])
 
 # Define GPIO pins for address selection (S0-S3) and enable (E)
-address_pins = [2, 3, 4, 5]  # Replace with your actual GPIO pin numbers
+address_pins = [26, 19, 13, 6]  # Replace with your actual GPIO pin numbers
 #enable_pin = 6  # Replace with your actual GPIO pin number
 
 # Set up GPIO
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(address_pins + [enable_pin], GPIO.OUT)
+#GPIO.setup(address_pins + [enable_pin], GPIO.OUT)
+GPIO.setup(address_pins, GPIO.OUT)
 
 def set_channel(mux_channel):
     # Set the address pins based on the binary representation of the channel
@@ -57,7 +58,7 @@ def read_resistance(know_value):
 try:
     while True:
         for mux_channel in range(3):
-            set_channel(mux_channel)
+            set_channel(mux_channel	
             #enable_mux()
             for x in known_resistor_values:
                 ohms = read_resistance(x)

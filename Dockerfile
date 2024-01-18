@@ -3,10 +3,10 @@ LABEL maintainer="Andrey Tyukavin <tyukavin.andreyy@gmail.com>"
 
 WORKDIR /app
 
-COPY . /app
-
 RUN apt-get update && \
     apt-get install -y i2c-tools lsof
+
+COPY . /app
 
 RUN pip install -r requirements.txt
 
