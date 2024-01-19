@@ -11,12 +11,35 @@ print("I2C addresses:", [hex(device_address) for device_address in i2c.scan()])
 
 # Define GPIO pins for address selection (S0-S3) and enable (E)
 address_pins = [26, 19, 13, 6]  # Replace with your actual GPIO pin numbers
-#enable_pin = 6  # Replace with your actual GPIO pin number
+enable_pin = 5  # Replace with your actual GPIO pin number
+
+
+S0_PIN = 26
+S1_PIN = 19
+S2_PIN = 13
+S3_PIN = 6
+
+
 
 # Set up GPIO
-GPIO.setmode(GPIO.BCM)
+#GPIO.setmode(GPIO.BCM)
 #GPIO.setup(address_pins + [enable_pin], GPIO.OUT)
-GPIO.setup(address_pins, GPIO.OUT)
+#GPIO.setup(address_pins, GPIO.OUT)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(26, GPIO.OUT)
+GPIO.setup(19, GPIO.OUT)
+GPIO.setup(13, GPIO.OUT)
+GPIO.setup(6, GPIO.OUT)
+
+# Function to select a channel on CD74HC4067
+def select_channel(channel):
+    GPIO.output(S0_PIN, channel & 1)
+    GPIO.output(S1_PIN, channel & 2)
+    GPIO.output(S2_PIN, channel & 4)
+    GPIO.output(S3_PIN, channel & 8)
+
+
+
 
 def set_channel(mux_channel):
     # Set the address pins based on the binary representation of the channel
@@ -24,13 +47,12 @@ def set_channel(mux_channel):
     for pin, value in zip(address_pins, binary_channel):
         GPIO.output(pin, int(value))
  
-'''
 def enable_mux():
     GPIO.output(enable_pin, GPIO.LOW)
 
 def disable_mux():
     GPIO.output(enable_pin, GPIO.HIGH)
-'''
+
 
 # Create an ADS1115 object
 ads = ADS.ADS1115(i2c, address=0x48)
@@ -38,37 +60,39 @@ print("ADS1115 Configuration:", ads)
  
 # Define the analog input channel
 channel = AnalogIn(ads, ADS.P0)
-print("Analog Value:", channel.value, "Voltage:", channel.voltage) 
+#print("Analog Value:", channel.value, "Voltage:", channel.voltage) 
 
 
-known_resistor_values = [1,10,47]  # 1 kΩ resistor as an example
+known_resistor_values = [1,10,47,100]  # 1 kΩ resistor as an example
 
-def read_resistance(know_value):
-    # Read the voltage across the resistor
-    voltage = channel.voltage
 
-    # Calculate the current flowing through the resistor
-    current = voltage / know_value
+#4.096
+def read_resistance(voltage, known_value):
 
-    # Calculate the resistance using Ohm's Law
-    resistance = voltage / current
-
+    resistance = known_value * (4.096 / voltage - 1)
+    #resistance = known_value * (5 / voltage - 1)
     return resistance
 
 try:
     while True:
-        for mux_channel in range(3):
-            set_channel(mux_channel)
+        for mux_channel in range(4):
+           # enable_mux()
+            select_channel(mux_channel)
+            #set_channel(mux_channel)
+            #voltage = channel.voltage
             #enable_mux()
-            ohms = read_resistance(known_resistor_values[mux_channel])
-            print("Channel {}: resistance {}".format(mux_channel, ohms))
-
+            voltage = channel.voltage
+            print("Known: " + str(known_resistor_values[mux_channel]))
+            print("Voltage: " + str(round(voltage,3)))
+            ohms = read_resistance(voltage, known_resistor_values[mux_channel])
+            print("Channel {}: resistance {}".format(mux_channel, round(ohms,3)))
+            print("/n")
             # Read analog value from the selected channel
             # Add your ADC reading logic here
 
             #disable_mux()
         print('='*20)
-        time.sleep(5)
+        time.sleep(10)
 
 except KeyboardInterrupt:
     GPIO.cleanup()
