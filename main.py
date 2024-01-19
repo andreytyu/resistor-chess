@@ -13,13 +13,10 @@ print("I2C addresses:", [hex(device_address) for device_address in i2c.scan()])
 address_pins = [26, 19, 13, 6]  # Replace with your actual GPIO pin numbers
 enable_pin = 5  # Replace with your actual GPIO pin number
 
-
 S0_PIN = 26
 S1_PIN = 19
 S2_PIN = 13
 S3_PIN = 6
-
-
 
 # Set up GPIO
 #GPIO.setmode(GPIO.BCM)
@@ -38,9 +35,6 @@ def select_channel(channel):
     GPIO.output(S2_PIN, channel & 4)
     GPIO.output(S3_PIN, channel & 8)
 
-
-
-
 def set_channel(mux_channel):
     # Set the address pins based on the binary representation of the channel
     binary_channel = bin(mux_channel)[2:].zfill(4)
@@ -55,38 +49,40 @@ def disable_mux():
 
 
 # Create an ADS1115 object
-ads = ADS.ADS1115(i2c, address=0x48, gain=2)
+ads = ADS.ADS1115(i2c, address=0x48, gain=2/3)
 print("ADS1115 Configuration:", ads)
  
 # Define the analog input channel
 channel = AnalogIn(ads, ADS.P0)
 #print("Analog Value:", channel.value, "Voltage:", channel.voltage) 
 
-
-known_resistor_values = [1,10,47,100,1000]  # 1 kΩ resistor as an example
-
+known_resistor_values = [1,10,47,100,220,560,1000,4700,10000,47000,100000,1000000]  # 1 kΩ resistor as an example
 
 #4.096
 def read_resistance(voltage, known_value):
 
-    resistance = (known_value * (voltage))/ ( 2.048 - voltage + 1)
+    resistance = (known_value * (voltage))/ (5 - voltage)
     #resistance = known_value * (5 / voltage - 1)
     return resistance
 
 try:
     while True:
-        for mux_channel in range(5):
+        for mux_channel in range(12):
            # enable_mux()
             select_channel(mux_channel)
             #set_channel(mux_channel)
             #voltage = channel.voltage
             #enable_mux()
             voltage = channel.voltage
-            print("Known: " + str(known_resistor_values[mux_channel]))
+            print("Channel {}".format(mux_channel))
             print("Voltage: " + str(round(voltage,3)))
             ohms = read_resistance(voltage, known_resistor_values[mux_channel])
-            print("Channel {}: resistance {}".format(mux_channel, round(ohms,3)))
-            print("/n")
+            error = known_resistor_values[mux_channel] - ohms
+            error_percent = round((known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel] * 100, 1)
+            print("Known resistance: " + str(known_resistor_values[mux_channel]))
+            print("Channel {}: resistance {}".format(mux_channel, round(ohms)))
+            print("Error: {} Ohm, {}% ".format(error, error_percent))
+            print("\n")
             # Read analog value from the selected channel
             # Add your ADC reading logic here
 
@@ -101,42 +97,3 @@ except KeyboardInterrupt:
 #while True:
 #    print("Analog Value: ", channel.value, "Voltage: ", channel.voltage)
 #    time.sleep(0.2)
-
-'''
-import os
-import time
-import chess
-import requests
-
-chat_id = token=os.environ.get('CHAT_ID')
-token = os.environ.get('BOT_TOKEN')
-
-board = chess.Board()
-
-board2 = ''♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜
-♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟
-⭘ ⭘ ⭘ ⭘ ⭘ ⭘ ⭘ ⭘
-⭘ ⭘ ⭘ ⭘ ⭘ ⭘ ⭘ ⭘
-⭘ ⭘ ⭘ ⭘ ⭘ ♙ ⭘ ⭘
-⭘ ⭘ ⭘ ⭘ ⭘ ⭘ ⭘ ⭘
-♙ ♙ ♙ ♙ ♙ ⭘ ♙ ♙
-♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖''
-
-for move in board.legal_moves:
-    board_ = board.copy()
-    board_.push(move)
-    if board_.unicode() == board2:
-        break
-
-text = board.unicode() + '\n\n' + move.uci() + ' was the move' + '\n\n' + board2
-
-def send_msg(text):
-   url_req = f'https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={text}'
-   print('trying')
-   results = requests.get(url_req)
-   print(results.json())
-
-while True:
-    send_msg(text)
-    time.sleep(60*60)
-'''
