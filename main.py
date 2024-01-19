@@ -55,7 +55,7 @@ def disable_mux():
 
 
 # Create an ADS1115 object
-ads = ADS.ADS1115(i2c, address=0x48)
+ads = ADS.ADS1115(i2c, address=0x48, gain=2)
 print("ADS1115 Configuration:", ads)
  
 # Define the analog input channel
@@ -63,19 +63,19 @@ channel = AnalogIn(ads, ADS.P0)
 #print("Analog Value:", channel.value, "Voltage:", channel.voltage) 
 
 
-known_resistor_values = [1,10,47,100]  # 1 kΩ resistor as an example
+known_resistor_values = [1,10,47,100,1000]  # 1 kΩ resistor as an example
 
 
 #4.096
 def read_resistance(voltage, known_value):
 
-    resistance = known_value * (4.096 / voltage - 1)
+    resistance = (known_value * (voltage))/ ( 2.048 - voltage + 1)
     #resistance = known_value * (5 / voltage - 1)
     return resistance
 
 try:
     while True:
-        for mux_channel in range(4):
+        for mux_channel in range(5):
            # enable_mux()
             select_channel(mux_channel)
             #set_channel(mux_channel)
