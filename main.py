@@ -56,17 +56,19 @@ print("ADS1115 Configuration:", ads)
 channel = AnalogIn(ads, ADS.P0)
 #print("Analog Value:", channel.value, "Voltage:", channel.voltage) 
 
-known_resistor_values = [1,10,47,100,220,560,1000,4700,10000,47000,100000,1000000]  # 1 kΩ resistor as an example
+known_resistor_values = [2000,2200,5600,22000,680,560,1000,4700,10000,47000,100000,1000000]  # 1 kΩ resistor as an example
 
 #4.096
 def read_resistance(voltage, known_value):
 
-    resistance = (known_value * (voltage))/ (5 - voltage)
+    resistance = (known_value * (voltage))/ (4.9 - voltage)
     #resistance = known_value * (5 / voltage - 1)
     return resistance
 
 try:
     while True:
+        fin_error = 0.5
+        resistance = 0
         for mux_channel in range(12):
            # enable_mux()
             select_channel(mux_channel)
@@ -74,21 +76,27 @@ try:
             #voltage = channel.voltage
             #enable_mux()
             voltage = channel.voltage
-            print("Channel {}".format(mux_channel))
-            print("Voltage: " + str(round(voltage,3)))
+            #print("Channel {}".format(mux_channel))
+            #print("Voltage: " + str(round(voltage,3)))
             ohms = read_resistance(voltage, known_resistor_values[mux_channel])
             error = known_resistor_values[mux_channel] - ohms
-            error_percent = round((known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel] * 100, 1)
-            print("Known resistance: " + str(known_resistor_values[mux_channel]))
-            print("Channel {}: resistance {}".format(mux_channel, round(ohms)))
-            print("Error: {} Ohm, {}% ".format(error, error_percent))
-            print("\n")
+            error_percent = (known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel]
+            if abs(error_percent) < fin_error:
+                fin_error = abs(error_percent)
+                resistance = known_resistor_values[mux_channel]
+            #print("Known resistance: " + str(known_resistor_values[mux_channel]))
+            #print("Channel {}: resistance {}".format(mux_channel, round(ohms)))
+            #print("Error: {} Ohm, {}% ".format(error, error_percent))
+            #print("\n")
             # Read analog value from the selected channel
             # Add your ADC reading logic here
 
             #disable_mux()
-        print('='*20)
-        time.sleep(10)
+        if resistance != 0:
+            print("It's a {} Ohm resistor, error {}%".format(resistance, round(fin_error*100,2)))
+        else:
+            print("No resistor")
+        time.sleep(1)
 
 except KeyboardInterrupt:
     GPIO.cleanup()
