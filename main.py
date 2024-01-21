@@ -24,13 +24,13 @@ enable_pins = {
 }
 '''
 
-known_resistor_values = [2000,2200,5600,22000,680,560,1000,4700,10000,47000,100000,1000000]
+known_resistor_values = [560,680,1000,2000,2200,4700,5600,10000,22000,47000,100000,1000000]
 
 GPIO.setmode(GPIO.BCM)
 for pin in address_pins["ohm_meter"]:
     GPIO.setup(pin, GPIO.OUT)
-for pin in address_pins["cell_switch"]:
-    GPIO.setup(pin, GPIO.OUT)
+#for pin in address_pins["cell_switch"]:
+#    GPIO.setup(pin, GPIO.OUT)
 
 '''
 for x in range(2):
@@ -51,17 +51,17 @@ def disable_mux(mux):
 
 # Create an ADS1115 object
 ads = ADS.ADS1115(i2c, address=0x48, gain=2/3)
-channe0 = AnalogIn(ads, ADS.P0)
+channel0 = AnalogIn(ads, ADS.P3)
 #channel1 = AnalogIn(ads, ADS.P1)
 
 def read_resistance(voltage, known_value):
-    resistance = (known_value * (voltage))/ (4.9 - voltage)
+    resistance = (known_value * voltage) / (4.9 - voltage)
     return resistance
 
 try:
     while True:
         
-        #board_state0 = []
+        board_state0 = []
         #board_state1 = []
         '''
         for x in range(2):
@@ -92,7 +92,11 @@ try:
                 fin_error0 = abs(error_percent0)
                 resistance0 = known_resistor_values[mux_channel]
             #disable_mux()
-        
+            print("Known resistance: " + str(known_resistor_values[mux_channel]))
+            print("Channel {}: resistance {}".format(mux_channel, round(ohms0)))
+            print(voltage0)
+            print("Error: {} Ohm, {}% ".format(error0, error_percent0))
+            print("\n")
             #voltage1 = channel1.voltage
             #ohms1 = read_resistance(voltage0, known_resistor_values[mux_channel])
             #error1 = known_resistor_values[mux_channel] - ohms1
@@ -101,11 +105,10 @@ try:
             #    fin_error1 = abs(error_percent1)
             #    resistance1 = known_resistor_values[mux_channel]
 
-
-            if resistance0 != 0:
-                board_state0.append("{} Ohm, error {}%".format(resistance0, round(fin_error0*100,2)))
-            else:
-                board_state0.append("-")
+        if resistance0 != 0:
+            board_state0.append("{} Ohm, error {}%".format(resistance0, round(fin_error0*100,2)))
+        else:
+            board_state0.append("-")
 
             #if resistance1 != 0:
             #    board_state1.append("{} Ohm, error {}%".format(resistance1, round(fin_error1*100,2)))
@@ -117,7 +120,7 @@ try:
         print(board_state0)
         #print(board_state1)
         print('='*10)
-        #time.sleep(1)
+        time.sleep(5)
 
 except KeyboardInterrupt:
     GPIO.cleanup()
