@@ -14,6 +14,7 @@ address_pins = {
     "cell_switch": [21, 20, 16, 12]
     }
 
+'''
 # for cell switchers
 enable_pins = {
     0: 5,
@@ -21,6 +22,7 @@ enable_pins = {
     #2:
     #3:
 }
+'''
 
 known_resistor_values = [2000,2200,5600,22000,680,560,1000,4700,10000,47000,100000,1000000]
 
@@ -29,9 +31,11 @@ for pin in address_pins["ohm_meter"]:
     GPIO.setup(pin, GPIO.OUT)
 for pin in address_pins["cell_switch"]:
     GPIO.setup(pin, GPIO.OUT)
+
+'''
 for x in range(2):
     GPIO.setup(enable_pins[x], GPIO.OUT)
-
+'''
 
 def set_channel(mux, mux_channel):
     # Set the address pins based on the binary representation of the channel
@@ -47,7 +51,8 @@ def disable_mux(mux):
 
 # Create an ADS1115 object
 ads = ADS.ADS1115(i2c, address=0x48, gain=2/3)
-channel = AnalogIn(ads, ADS.P0)
+channe0 = AnalogIn(ads, ADS.P0)
+channel1 = AnalogIn(ads, ADS.P1)
 
 def read_resistance(voltage, known_value):
     resistance = (known_value * (voltage))/ (4.9 - voltage)
@@ -56,40 +61,62 @@ def read_resistance(voltage, known_value):
 try:
     while True:
         
-        board_state = []
-
+        board_state0 = []
+        board_state1 = []
+        '''
         for x in range(2):
             disable_mux(x)
+        
 
         for cell_switch in range(2):
             
             enable_mux(cell_switch)
+        '''    
+        for cell_switch_channel in range(16):
+
+            set_channel("cell_switch", cell_switch_channel)
+
+            fin_error0 = 0.5
+            resistance0 = 0
+            fin_error1 = 0.5
+            resistance1 = 0
+
+            for mux_channel in range(12):
+            # enable_mux()
+                set_channel("ohm_meter", mux_channel)
+                voltage0 = channel0.voltage
+                ohms0 = read_resistance(voltage0, known_resistor_values[mux_channel])
+                error0 = known_resistor_values[mux_channel] - ohms0
+                error_percent0 = (known_resistor_values[mux_channel] - ohms0) / known_resistor_values[mux_channel]
+                if abs(error_percent0) < fin_error0:
+                    fin_error0 = abs(error_percent0)
+                    resistance0 = known_resistor_values[mux_channel]
+                #disable_mux()
             
-            for cell_switch_channel in range(16):
+                voltage1 = channel1.voltage
+                ohms1 = read_resistance(voltage0, known_resistor_values[mux_channel])
+                error1 = known_resistor_values[mux_channel] - ohms1
+                error_percent1 = (known_resistor_values[mux_channel] - ohms1) / known_resistor_values[mux_channel]
+                if abs(error_percent1) < fin_error1:
+                    fin_error1 = abs(error_percent1)
+                    resistance1 = known_resistor_values[mux_channel]
 
-                set_channel("cell_switch", cell_switch_channel)
 
-                fin_error = 0.5
-                resistance = 0
-                for mux_channel in range(12):
-                # enable_mux()
-                    set_channel("ohm_meter", mux_channel)
-                    voltage = channel.voltage
-                    ohms = read_resistance(voltage, known_resistor_values[mux_channel])
-                    error = known_resistor_values[mux_channel] - ohms
-                    error_percent = (known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel]
-                    if abs(error_percent) < fin_error:
-                        fin_error = abs(error_percent)
-                        resistance = known_resistor_values[mux_channel]
-                    #disable_mux()
-                if resistance != 0:
-                    board_state.append("{} Ohm, error {}%".format(resistance, round(fin_error*100,2)))
-                else:
-                    board_state.append("-")
+            if resistance0 != 0:
+                board_state0.append("{} Ohm, error {}%".format(resistance0, round(fin_error0*100,2)))
+            else:
+                board_state0.append("-")
 
-            disable_mux(cell_switch)
+            if resistance1 != 0:
+                board_state1.append("{} Ohm, error {}%".format(resistance1, round(fin_error1*100,2)))
+            else:
+                board_state1.append("-")
 
-        print(board_state)
+        #disable_mux(cell_switch)
+
+        print(board_state0)
+        print(board_state1)
+        print('='*10)
         #time.sleep(1)
 
 except KeyboardInterrupt:
