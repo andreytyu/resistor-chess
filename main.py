@@ -79,11 +79,13 @@ try:
             cells = []
 
             for cell in range(16):
+
+                set_channel("cell_switch", cell)
                 fin_error = 0.5
                 resistance = 0
                 for mux_channel in range(12):
 
-                    select_channel(mux_channel)
+                    set_channel("ohm_meter", mux_channel)
                     #set_channel(mux_channel)
                     #voltage = channel.voltage
                     #enable_mux()
