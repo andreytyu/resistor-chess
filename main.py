@@ -11,7 +11,7 @@ i2c = busio.I2C(board.SCL, board.SDA)
 # 0 - ohm meter, 1,2,3,4 - cell switchers
 address_pins = {
     "ohm_meter": [26, 19, 13, 6],
-    "cell_switch": [7, 0, 2, 3]
+    "cell_switch": [21, 20, 16, 12]
     }
 
 # for cell switchers
@@ -85,12 +85,12 @@ try:
                 if resistance != 0:
                     board_state.append("{} Ohm, error {}%".format(resistance, round(fin_error*100,2)))
                 else:
-                    board_state.append("No resistor")
+                    board_state.append("-")
 
             disable_mux(cell_switch)
 
         print(board_state)
-        time.sleep(1)
+        #time.sleep(1)
 
 except KeyboardInterrupt:
     GPIO.cleanup()
