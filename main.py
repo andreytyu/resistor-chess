@@ -38,8 +38,8 @@ GPIO.setup(21, GPIO.OUT)
 GPIO.setup(20, GPIO.OUT)
 GPIO.setup(16, GPIO.OUT)
 GPIO.setup(12, GPIO.OUT)
-GPIO.setup(23, GPIO.OUT)
-GPIO.setup(24, GPIO.OUT)
+#GPIO.setup(23, GPIO.OUT)
+#GPIO.setup(24, GPIO.OUT)
 
 
 def set_channel(mux, mux_channel):
@@ -70,67 +70,37 @@ def read_resistance(voltage, known_value):
 
 try:
     while True:
+        start_time = time.time()
+        cells = []
 
-        board = {}
-        for board_segment in range(2):
-            
-            enable_mux(board_segment)
+        for cell in range(16):
 
-            cells = []
+            set_channel("cell_switch", cell)
+            fin_error = 0.5
+            resistance = 0
+            for mux_channel in range(12):
 
-            for cell in range(16):
+                set_channel("ohm_meter", mux_channel)
+                voltage = channel.voltage
 
-                set_channel("cell_switch", cell)
-                fin_error = 0.5
-                resistance = 0
-                for mux_channel in range(12):
+                ohms = read_resistance(voltage, known_resistor_values[mux_channel])
+                error = known_resistor_values[mux_channel] - ohms
+                error_percent = round((known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel] * 100, 1)
+                error_percent = (known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel]
+                if abs(error_percent) < fin_error:
+                    fin_error = abs(error_percent)
+                    resistance = known_resistor_values[mux_channel]
 
-                    set_channel("ohm_meter", mux_channel)
-                    #set_channel(mux_channel)
-                    #voltage = channel.voltage
-                    #enable_mux()
-                    voltage = channel.voltage
-
-                    #print("Channel {}".format(mux_channel))
-                    #print("Voltage: " + str(round(voltage,3)))
-                    #print("Channel {}".format(mux_channel))
-                    #print("Voltage: " + str(round(voltage,3)))
-                    ohms = read_resistance(voltage, known_resistor_values[mux_channel])
-                    error = known_resistor_values[mux_channel] - ohms
-                    error_percent = round((known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel] * 100, 1)
-                    error_percent = (known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel]
-                    if abs(error_percent) < fin_error:
-                        fin_error = abs(error_percent)
-                        resistance = known_resistor_values[mux_channel]
-
-                    #print("Known resistance: " + str(known_resistor_values[mux_channel]))
-                    #print("Channel {}: resistance {}".format(mux_channel, round(ohms)))
-                    #print("Error: {} Ohm, {}% ".format(error, error_percent))
-                    #print("\n")
-                    
-                    #print("Known resistance: " + str(known_resistor_values[mux_channel]))
-                    #print("Channel {}: resistance {}".format(mux_channel, round(ohms)))
-                    #print("Error: {} Ohm, {}% ".format(error, error_percent))
-                    #print("\n")
-                    # Read analog value from the selected channel
-                    # Add your ADC reading logic here
-
-                    #disable_mux()
-                #print('='*20)
-                #time.sleep(5)
-                if resistance != 0:
-                    cells.append("{}: {} Ohm, error {}%".format(cell, resistance, round(fin_error*100,2)))
-                else:
-                    cells.append("{}: o".format(cell))
-                #time.sleep(1)
-            board[board_segment] = cells
-            disable_mux(board_segment)
-        print(board)
+            if resistance != 0:
+                cells.append("{}: {} Ohm, error {}%".format(cell, resistance, round(fin_error*100,2)))
+        end_time = time.time()
+            #else:
+            #    cells.append("{}: o".format(cell))
+        print(cells)
+        elapsed_time = end_time - start_time
+        print(f"Elapsed time: {elapsed_time} seconds")
         print('='*10)
 
 except KeyboardInterrupt:
     GPIO.cleanup()
-# Loop to read the analog input continuously
-#while True:
-#    print("Analog Value: ", channel.value, "Voltage: ", channel.voltage)
-#    time.sleep(0.2)
+
