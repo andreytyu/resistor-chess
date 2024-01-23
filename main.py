@@ -23,7 +23,7 @@ address_pins = {
 # for cell switchers
 enable_pins = {
     0: 23,
-    1: 34
+    1: 24
     #2:
     #3:
 }
@@ -99,7 +99,7 @@ try:
                     error = known_resistor_values[mux_channel] - ohms
                     error_percent = round((known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel] * 100, 1)
                     error_percent = (known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel]
-                    if abs(error_percent) < fin_error0:
+                    if abs(error_percent) < fin_error:
                         fin_error = abs(error_percent)
                         resistance = known_resistor_values[mux_channel]
 
