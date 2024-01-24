@@ -24,12 +24,6 @@ address_pins = {
     }
 
 # for cell switchers
-enable_pins = {
-    0: 23,
-    1: 24,
-    2: 22,
-    3: 27
-}
 
 # Set up GPIO
 GPIO.setmode(GPIO.BCM)
@@ -52,48 +46,47 @@ def set_channel(mux, mux_channel):
     binary_channel = bin(mux_channel)[2:].zfill(4)
     for pin, value in zip(address_pins[mux], binary_channel):
         GPIO.output(pin, int(value))
- 
-def enable_mux(mux):
-    GPIO.output(enable_pins[mux], GPIO.LOW)
-def disable_mux(mux):
-    GPIO.output(enable_pins[mux], GPIO.HIGH)
 
 # Define the analog input channel
-channel = AnalogIn(ads, ADS.P0)
+channels = [AnalogIn(ads, x) for x in [ADS.P0,ADS.P1,ADS.P2,ADS.P3]]
 
 def calc_resistance(voltage, known_value):
     resistance = (known_value * voltage)/(reference_voltage - voltage)
     return resistance
 
+def calc_resistance_error(voltage, known_value):
+    resistance = (known_value * voltage)/(reference_voltage - voltage)
+    ohms = calc_resistance(voltage, known_value)
+    error = (known_value - ohms) / known_value
+    return resistance
+
 try:
     while True:
         start_time = time.time()
-        board = []
-        for board_segment in range(4):
-            cells = []
-            enable_mux(board_segment)
-            for cell in range(16):
-                set_channel("cell_switch", cell)
-                fin_error = 0.5
-                resistance = 0
-                for mux_channel in range(12):
-                    set_channel("ohm_meter", mux_channel)
-                    time.sleep(0.0035)
+        board = {}
+
+        for cell in range(16):
+
+            errors = {0:0.5,1:0.5,2:0.5,3:0.5}
+            values = {0:0,1:0,2:0,3:0}
+            set_channel("cell_switch", cell)
+            
+            for mux_channel in range(12):
+                set_channel("ohm_meter", mux_channel)
+                time.sleep(0.0035)
+                for i, channel in enumerate(channels):
+                    board[channel] = {}
                     voltage = channel.voltage
-                    ohms = calc_resistance(voltage, known_resistor_values[mux_channel])
-                    error = known_resistor_values[mux_channel] - ohms
-                    error_percent = (known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel]
-                    if abs(error_percent) < fin_error:
-                        fin_error = abs(error_percent)
-                        resistance = known_resistor_values[mux_channel]
-                if resistance != 0:
-                    cells.append("{}: {} Ohm, error {}%".format(cell, resistance, round(fin_error*100,2)))
-            disable_mux(board_segment)
-            board.append(cells)
-        for i, segment in enumerate(board):
-            print("Segment {}: {}".format(i, segment))
-            disable_mux(i)
-            print("\n")
+                    error = calc_resistance_error(voltage, known_resistor_values[mux_channel])
+                    if abs(error) < errors[i]:
+                        errors[i] = abs(error)
+                        values[i] = known_resistor_values[mux_channel]
+                if values[i] != 0:
+                    board[channel][cell] = "{}: {} Ohm, error {}%".format(cell, values[i], round(errors[i]*100,2))
+                errors[i] = 0.5
+                values[i] = 0
+        print(board)
+        print("\n")
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Elapsed time: {elapsed_time} seconds")
