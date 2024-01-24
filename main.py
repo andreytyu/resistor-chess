@@ -4,6 +4,8 @@ import busio
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 import RPi.GPIO as GPIO
+import ADS1x15
+
  
 # Initialize the I2C interface
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -41,6 +43,11 @@ GPIO.setup(12, GPIO.OUT)
 #GPIO.setup(23, GPIO.OUT)
 #GPIO.setup(24, GPIO.OUT)
 
+ALRT_PIN = 25  # Replace with the actual GPIO pin number
+#GPIO.setmode(GPIO.BCM)
+GPIO.setup(ALRT_PIN, GPIO.IN)
+
+
 
 def set_channel(mux, mux_channel):
     # Set the address pins based on the binary representation of the channel
@@ -54,11 +61,34 @@ def disable_mux(mux):
     GPIO.output(enable_pins[mux], GPIO.HIGH)
 
 # Create an ADS1115 object
-ads = ADS.ADS1115(i2c, address=0x48, gain=2/3)
-print("ADS1115 Configuration:", ads)
- 
+#ads = ADS.ADS1115(i2c, address=0x48, gain=2/3)
+
+#print("ADS1115 Configuration:", ads)
+ADS = ADS1x15.ADS1115(1, 0x48)
+print(1)
+ADS.setGain(ADS.PGA_6_144V)
+ADS.setMode(ADS.MODE_CONTINUOUS)
+ADS.setDataRate(5)
+print(2)
+f = ADS.toVoltage()
+print(3)
+ADS.requestADC(0) 
+print(4)
+print(ADS.isReady())
+#ads.mode = 0
+#ads.data_rate = 860
+ADS.setComparatorMode(ADS.COMP_MODE_TRADITIONAL)
+ADS.setComparatorPolarity(ADS.COMP_POL_ACTIV_LOW)
+ADS.setComparatorLatch(ADS.COMP_NON_LATCH)
+ADS.setComparatorQueue(ADS.COMP_QUE_4_CONV)
+# set threshold
+#f = ADS.toVoltage()
+ADS.setComparatorThresholdLow(0x7FFF)    # 1.5V
+ADS.setComparatorThresholdHigh(0x8000)
+ADS.requestADC(0)
+
 # Define the analog input channel
-channel = AnalogIn(ads, ADS.P0)
+#channel = AnalogIn(ads, ADS.P0)
 #print("Analog Value:", channel.value, "Voltage:", channel.voltage) 
 
 def read_resistance(voltage, known_value):
@@ -67,6 +97,28 @@ def read_resistance(voltage, known_value):
     resistance = (known_value * (voltage))/ (reference_voltage - voltage)
     #resistance = known_value * (5 / voltage - 1)
     return resistance
+
+def read_voltage(mux_channel):
+    #print("voltage")
+    set_channel("ohm_meter", mux_channel)
+    # Wait for the ADC to be ready
+    #while ADS.isBusy():
+    #    time.sleep(0.001)  # You might want to add a short sleep here, or use asyncio.sleep in an asynchronous context
+    #ADS.requestADC(0)
+    #GPIO.wait_for_edge(ALRT_PIN, GPIO.FALLING, timeout=100)
+    #ADS.requestADC(0)
+    last_state = GPIO.input(ALRT_PIN)
+    #while True:
+    #    current_state = GPIO.input(ALRT_PIN)
+    #    print(current_state)
+    #    if current_state != last_state:
+    #        break
+    val_0 = ADS.getValue()
+    ADS.requestADC(0)
+    voltage = val_0 * f
+    #voltage = channel.voltage
+    return voltage
+
 
 try:
     while True:
@@ -79,10 +131,24 @@ try:
             fin_error = 0.5
             resistance = 0
             for mux_channel in range(12):
-
-                set_channel("ohm_meter", mux_channel)
-                voltage = channel.voltage
-
+                # print(5)
+                #print(GPIO.input(ALRT_PIN))
+                #GPIO.wait_for_edge(ALRT_PIN, GPIO.FALLING, timeout=100)
+                time.sleep(0.0035)
+                #print('before')
+                #for x in range(20):
+                #    print(GPIO.input(ALRT_PIN))
+                voltage = read_voltage(mux_channel)
+                #print('after')
+                #for x in range(20):
+                #    print(GPIO.input(ALRT_PIN))
+                #GPIO.wait_for_edge(ALRT_PIN, GPIO.FALLING, timeout=10)
+                #set_channel("ohm_meter", mux_channel)
+                #time.sleep(0.001)
+                #time.sleep(0.0035)
+                #for x in range(3):
+                #voltage = channel.voltage
+                #voltage = channel.voltage
                 ohms = read_resistance(voltage, known_resistor_values[mux_channel])
                 error = known_resistor_values[mux_channel] - ohms
                 error_percent = round((known_resistor_values[mux_channel] - ohms) / known_resistor_values[mux_channel] * 100, 1)
@@ -102,5 +168,8 @@ try:
         print('='*10)
 
 except KeyboardInterrupt:
-    GPIO.cleanup()
-
+    GPIO.cleanup() # HandldInterrupt (Ctrl+C) if needed
+finally:
+    # Make sure to stop the ADC when done
+    ads.mode = 256
+    ads.stop_continuous_mode()
